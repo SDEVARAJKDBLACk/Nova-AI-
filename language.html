@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nova AI - Enterprise Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap');
+        
+        :root { --primary: #6366f1; --secondary: #a855f7; --bg: #f8fafc; }
+
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: #1e293b; overflow: hidden; margin: 0; }
+        
+        .screen { display: none; height: 100dvh; width: 100vw; position: fixed; top: 0; left: 0; background: var(--bg); flex-direction: column; z-index: 50; }
+        .screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .tab-content { display: none; flex-direction: column; height: calc(100dvh - 160px); overflow-y: auto; padding: 24px; }
+        .tab-content.active { display: flex; }
+        
+        .nav-btn.active { color: var(--primary); }
+        .nav-btn.active::after { content: ''; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 20px; height: 4px; background: var(--primary); border-radius: 0 0 10px 10px; }
+
+        /* FIXED HERO CARD CSS */
+        .hero-card { 
+            min-height: 160px; 
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); 
+            padding: 2rem; 
+            border-radius: 2.5rem; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mic-active { animation: ring-pulse 1.5s infinite; }
+        @keyframes ring-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); transform: scale(1); }
+            70% { box-shadow: 0 0 0 25px rgba(99, 102, 241, 0); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="max-w-md mx-auto shadow-2xl">
+
+    <div id="authScreen" class="screen active justify-center p-8 bg-white">
+        <div id="loginView" class="space-y-8 w-full">
+            <div class="text-center">
+                <div class="w-24 h-24 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center text-white mx-auto shadow-2xl mb-6">
+                    <span class="material-icons text-5xl">rocket_launch</span>
+                </div>
+                <h1 class="text-4xl font-black tracking-tighter text-slate-800">Nova AI</h1>
+                <p class="text-slate-400 font-medium">Your Personal Language Coach</p>
+            </div>
+            <div class="space-y-4">
+                <input id="lEmail" type="email" placeholder="Email Address" class="w-full p-4 bg-slate-50 rounded-2xl border outline-none">
+                <input id="lPass" type="password" placeholder="Password" class="w-full p-4 bg-slate-50 rounded-2xl border outline-none">
+                <button onclick="authAction('login')" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">SIGN IN</button>
+                <p class="text-center text-sm font-bold text-slate-400">New here? <button onclick="toggleAuth('reg')" class="text-indigo-600">Register</button></p>
+            </div>
+        </div>
+
+        <div id="regView" class="hidden space-y-4 w-full">
+            <h2 class="text-3xl font-black">Create Profile</h2>
+            <input id="rName" type="text" placeholder="Full Name" class="w-full p-4 bg-slate-50 rounded-2xl border outline-none">
+            <input id="rEmail" type="email" placeholder="Email" class="w-full p-4 bg-slate-50 rounded-2xl border outline-none">
+            <input id="rPass" type="password" placeholder="Password" class="w-full p-4 bg-slate-50 rounded-2xl border outline-none">
+            <button onclick="authAction('reg')" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black">CREATE ACCOUNT</button>
+            <button onclick="toggleAuth('login')" class="w-full text-slate-400 text-xs underline">Back</button>
+        </div>
+    </div>
+
+    <div id="appScreen" class="screen flex-col">
+        <header class="px-6 py-4 bg-white border-b flex items-center justify-between z-50">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg" id="userInit">U</div>
+                <div>
+                    <h2 id="userName" class="font-black text-slate-800 text-sm italic leading-none">User</h2>
+                    <p class="text-[9px] font-black text-indigo-500 mt-1 uppercase tracking-widest">XP: <span id="xpCount">0</span>/500</p>
+                </div>
+            </div>
+            <button onclick="location.reload()" class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center"><span class="material-icons">power_settings_new</span></button>
+        </header>
+
+        <main class="flex-1 relative overflow-hidden bg-slate-50">
+            <section id="homeTab" class="tab-content active space-y-8">
+                <div class="hero-card">
+                    <p class="text-[10px] font-black uppercase tracking-widest opacity-70">Daily Learning Goal</p>
+                    <h3 class="text-5xl font-black mt-1"><span id="xpLarge">0</span> <span class="text-lg">XP</span></h3>
+                    <div class="mt-4 flex gap-2">
+                        <span class="bg-white/20 px-3 py-1 rounded-full text-[9px] font-black">🔥 3 DAY STREAK</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Global News Feed</h4>
+                    <div id="newsFeed" class="space-y-3">
+                        <div onclick="readNews('AI technology is advancing rapidly in 2026', this)" class="bg-white p-5 rounded-[2rem] border flex items-center justify-between shadow-sm active:scale-95 transition-all">
+                            <div class="w-[85%]"><p class="text-[8px] font-black text-indigo-500 uppercase mb-1">Trending</p><p class="text-xs font-bold text-slate-700">AI technology is advancing rapidly in 2026...</p></div>
+                            <span class="material-icons text-indigo-200">play_circle</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4 pb-12">
+                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Revision Library</h4>
+                    <div id="mistakeList" class="space-y-3">
+                        <div class="p-8 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-300 font-bold text-xs">NO MISTAKES YET</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="teacherTab" class="tab-content">
+                <div class="bg-white p-4 rounded-3xl border flex gap-3 shadow-sm mb-8">
+                    <select id="tFrom" class="flex-1 bg-slate-50 p-3 rounded-2xl text-xs font-black lang-list outline-none"></select>
+                    <select id="tTo" class="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-xs font-black lang-list outline-none"></select>
+                </div>
+                <div class="flex-1 flex flex-col items-center justify-center space-y-10">
+                    <div id="teacherMic" onclick="aiTeacherAction()" class="w-40 h-40 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-2xl cursor-pointer active:scale-90 transition-all">
+                        <span class="material-icons text-7xl">psychology</span>
+                    </div>
+                    <div id="teacherResult" class="hidden w-full bg-white p-8 rounded-[3rem] border shadow-xl text-center">
+                        <p id="tHeard" class="text-xs italic text-slate-300 mb-2"></p>
+                        <p id="tTrans" class="text-2xl font-black text-indigo-600 leading-tight"></p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="translatorTab" class="tab-content space-y-6">
+                <div class="bg-white p-8 rounded-[3rem] border shadow-sm space-y-4">
+                    <h3 class="font-black text-xl">Quick Translator</h3>
+                    <textarea id="transInput" class="w-full h-32 outline-none text-lg font-bold bg-slate-50 p-4 rounded-2xl resize-none" placeholder="Type here..."></textarea>
+                    <div class="flex gap-2">
+                        <select id="transTarget" class="flex-1 bg-indigo-50 p-4 rounded-2xl text-xs font-black lang-list outline-none"></select>
+                        <button onclick="aiTranslateAction()" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90"><span class="material-icons">g_translate</span></button>
+                    </div>
+                </div>
+                <div id="transResultBox" class="hidden p-8 bg-white rounded-[3rem] border shadow-sm relative">
+                    <p id="transOutputText" class="text-xl font-bold text-slate-800"></p>
+                    <button onclick="speakText(document.getElementById('transOutputText').innerText, document.getElementById('transTarget').value)" class="absolute top-4 right-4 text-indigo-300"><span class="material-icons">volume_up</span></button>
+                </div>
+            </section>
+
+            <section id="grammarTab" class="tab-content">
+                <div class="bg-white p-8 rounded-[3rem] border shadow-sm space-y-6">
+                    <h3 class="font-black text-xl">Grammar Expert</h3>
+                    <textarea id="gInput" class="w-full h-48 outline-none text-xl font-bold bg-transparent resize-none" placeholder="Check your sentence..."></textarea>
+                    <button onclick="aiGrammarAction()" class="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black shadow-lg">ANALYZE NOW</button>
+                </div>
+                <div id="gResult" class="hidden mt-6 p-8 bg-indigo-900 text-white rounded-[3rem] shadow-2xl">
+                    <div id="gOut" class="space-y-4"></div>
+                </div>
+            </section>
+
+            <section id="vocabTab" class="tab-content flex flex-col items-center justify-center">
+                <div class="w-full bg-white p-10 rounded-[4rem] border shadow-xl text-center space-y-6">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pronounce this</p>
+                    <h2 id="vWord" class="text-3xl font-black text-slate-800 leading-tight">Consistency is the key to success</h2>
+                    <button onclick="speakText(document.getElementById('vWord').innerText, 'en-US')" class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center"><span class="material-icons">volume_up</span></button>
+                </div>
+                <div class="mt-12 flex flex-col items-center space-y-4">
+                    <div id="vMic" onclick="aiVocabAction()" class="w-24 h-24 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-2xl cursor-pointer active:scale-90 transition-all">
+                        <span class="material-icons text-4xl">mic_none</span>
+                    </div>
+                    <div id="vFeedback" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tap to Speak</div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="bg-white border-t py-2 flex justify-around items-center shrink-0 px-4 pb-8">
+            <button onclick="switchTab('homeTab', this)" class="nav-btn active flex flex-col items-center gap-1 p-2"><span class="material-icons">grid_view</span><span class="text-[8px] font-black uppercase">Home</span></button>
+            <button onclick="switchTab('teacherTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">psychology</span><span class="text-[8px] font-black uppercase">Teacher</span></button>
+            <button onclick="switchTab('translatorTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">g_translate</span><span class="text-[8px] font-black uppercase">Trans</span></button>
+            <button onclick="switchTab('grammarTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">spellcheck</span><span class="text-[8px] font-black uppercase">Grammar</span></button>
+            <button onclick="switchTab('vocabTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">graphic_eq</span><span class="text-[8px] font-black uppercase">Vocab</span></button>
+        </nav>
+    </div>
+
+    <script>
+        let xp = 0;
+        let mistakes = [];
+        
+        const languages = [
+            {c:'en-US', n:'English'}, {c:'ta-IN', n:'Tamil'}, {c:'hi-IN', n:'Hindi'}, 
+            {c:'te-IN', n:'Telugu'}, {c:'ml-IN', n:'Malayalam'}, {c:'kn-IN', n:'Kannada'},
+            {c:'fr-FR', n:'French'}, {c:'de-DE', n:'German'}, {c:'es-ES', n:'Spanish'},
+            {c:'ja-JP', n:'Japanese'}
+        ];
+        
+        const vocabList = [
+            "Consistency is the key to success",
+            "Artificial Intelligence is changing the world",
+            "Knowledge is power but practice is key",
+            "Every mistake is a lesson learned",
+            "The quick brown fox jumps over the lazy dog",
+            "Success is a journey not a destination"
+        ];
+
+        window.onload = () => {
+            document.querySelectorAll('.lang-list').forEach(s => s.innerHTML = languages.map(l => `<option value="${l.c}">${l.n}</option>`).join(''));
+            document.getElementById('tTo').value = 'ta-IN';
+            document.getElementById('transTarget').value = 'ta-IN';
+        };
+
+        function toggleAuth(view) {
+            document.getElementById('loginView').classList.toggle('hidden', view === 'reg');
+            document.getElementById('regView').classList.toggle('hidden', view === 'login');
+        }
+
+        function authAction(type) {
+            if(type === 'reg') {
+                const n = document.getElementById('rName').value, e = document.getElementById('rEmail').value, p = document.getElementById('rPass').value;
+                if(!n || !e || !p) return;
+                localStorage.setItem('nova_auth', JSON.stringify({n, e, p}));
+                toggleAuth('login');
+            } else {
+                const e = document.getElementById('lEmail').value, p = document.getElementById('lPass').value, saved = JSON.parse(localStorage.getItem('nova_auth'));
+                if(saved && saved.e === e && saved.p === p) {
+                    document.getElementById('userName').innerText = saved.n;
+                    document.getElementById('userInit').innerText = saved.n[0].toUpperCase();
+                    document.getElementById('authScreen').classList.remove('active');
+                    document.getElementById('appScreen').classList.add('active');
+                    confetti();
+                } else alert("Error!");
+            }
+        }
+
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.replace('active', 'text-slate-300'));
+            btn.classList.add('active'); btn.classList.remove('text-slate-300');
+        }
+
+        async function readNews(txt, el) {
+            el.classList.add('ring-2', 'ring-indigo-500');
+            speakText(txt, 'en-US');
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ta&dt=t&q=${encodeURI(txt)}`);
+            const data = await res.json();
+            setTimeout(() => { speakText(data[0][0][0], 'ta-IN'); updateXP(10); confetti(); el.classList.remove('ring-2', 'ring-indigo-500'); }, 2500);
+        }
+
+        async function aiTranslateAction() {
+            const txt = document.getElementById('transInput').value;
+            const target = document.getElementById('transTarget').value;
+            if(!txt) return;
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${target.split('-')[0]}&dt=t&q=${encodeURI(txt)}`);
+            const d = await res.json();
+            document.getElementById('transOutputText').innerText = d[0][0][0];
+            document.getElementById('transResultBox').classList.remove('hidden');
+        }
+
+        function aiTeacherAction() {
+            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            const from = document.getElementById('tFrom').value, to = document.getElementById('tTo').value;
+            rec.lang = from;
+            rec.onstart = () => document.getElementById('teacherMic').classList.add('mic-active');
+            rec.onresult = async (e) => {
+                const txt = e.results[0][0].transcript;
+                document.getElementById('tHeard').innerText = "Heard: " + txt;
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from.split('-')[0]}&tl=${to.split('-')[0]}&dt=t&q=${encodeURI(txt)}`);
+                const d = await res.json();
+                document.getElementById('tTrans').innerText = d[0][0][0];
+                document.getElementById('teacherResult').classList.remove('hidden');
+                speakText(d[0][0][0], to); updateXP(15);
+            };
+            rec.onend = () => document.getElementById('teacherMic').classList.remove('mic-active');
+            rec.start();
+        }
+
+        async function aiGrammarAction() {
+            const txt = document.getElementById('gInput').value;
+            if(!txt) return;
+            
+            const res = await fetch('https://api.languagetool.org/v2/check', { 
+                method: 'POST', 
+                body: `text=${encodeURIComponent(txt)}&language=en-US`, 
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'} 
+            });
+            const data = await res.json();
+            
+            const gOut = document.getElementById('gOut');
+            document.getElementById('gResult').classList.remove('hidden');
+            gOut.innerHTML = "";
+
+            if(data.matches.length > 0) {
+                data.matches.forEach(match => {
+                    const suggestion = match.replacements.length > 0 ? match.replacements[0].value : "No suggestion";
+                    const explanation = match.message;
+                    const context = match.context.text;
+                    const offset = match.context.offset;
+                    const len = match.context.length;
+                    
+                    const errorPart = context.substring(offset, offset + len);
+
+                    gOut.innerHTML += `
+                        <div class="border-b border-indigo-400/30 pb-4 mb-4">
+                            <p class="text-[10px] text-rose-300 font-black uppercase tracking-widest mb-1">Issue Found</p>
+                            <p class="text-sm italic opacity-70 mb-2">"${errorPart}"</p>
+                            <p class="text-xs font-bold text-indigo-200 mb-3 underline decoration-rose-500">${explanation}</p>
+                            <div class="bg-indigo-800/50 p-3 rounded-xl border border-indigo-400/20">
+                                <p class="text-[9px] font-black text-green-400 uppercase mb-1">Suggestion</p>
+                                <p class="text-lg font-black text-white">${suggestion}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                logMistake(txt, data.matches[0].replacements[0]?.value || "Grammar error");
+            } else { 
+                gOut.innerHTML = "<div class='text-center py-4'><span class='material-icons text-5xl text-green-400 mb-2'>verified</span><p class='text-xl font-black text-green-400'>Perfect Grammar!</p></div>"; 
+                updateXP(20); 
+                confetti(); 
+            }
+        }
+
+        function aiVocabAction() {
+            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            const target = document.getElementById('vWord').innerText.toLowerCase();
+            rec.onstart = () => { document.getElementById('vMic').classList.add('mic-active'); document.getElementById('vFeedback').innerText = "LISTENING..."; };
+            rec.onresult = (e) => {
+                const heard = e.results[0][0].transcript.toLowerCase();
+                if(heard.includes(target.split(' ')[0].toLowerCase())) {
+                    document.getElementById('vFeedback').innerHTML = "<span class='text-green-500 font-black'>PERFECT! +20 XP</span>";
+                    updateXP(20); confetti();
+                    setTimeout(() => {
+                        const next = vocabList[Math.floor(Math.random() * vocabList.length)];
+                        document.getElementById('vWord').innerText = next;
+                        document.getElementById('vFeedback').innerText = "TAP TO SPEAK";
+                    }, 2000);
+                } else document.getElementById('vFeedback').innerText = "TRY AGAIN";
+            };
+            rec.onend = () => document.getElementById('vMic').classList.remove('mic-active');
+            rec.start();
+        }
+
+        function updateXP(v) { xp = Math.min(500, xp + v); document.getElementById('xpCount').innerText = xp; document.getElementById('xpLarge').innerText = xp; }
+        function logMistake(w, r) { mistakes.unshift({w, r}); document.getElementById('mistakeList').innerHTML = mistakes.slice(0, 3).map(m => `<div class="bg-white p-4 rounded-3xl shadow-sm"><p class="text-[9px] text-red-300 line-through">"${m.w}"</p><p class="text-xs font-black text-slate-700">"${m.r}"</p></div>`).join(''); }
+        function speakText(t, l) { const u = new SpeechSynthesisUtterance(t); u.lang = l; window.speechSynthesis.speak(u); }
+    </script>
+</body>
+</html>
