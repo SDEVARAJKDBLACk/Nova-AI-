@@ -7,25 +7,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap');
         
         :root { --primary: #6366f1; --secondary: #a855f7; --bg: #f8fafc; }
-
         body { font-family: 'Outfit', sans-serif; background: var(--bg); color: #1e293b; overflow: hidden; margin: 0; }
         
         .screen { display: none; height: 100dvh; width: 100vw; position: fixed; top: 0; left: 0; background: var(--bg); flex-direction: column; z-index: 50; }
         .screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         .tab-content { display: none; flex-direction: column; height: calc(100dvh - 160px); overflow-y: auto; padding: 24px; }
         .tab-content.active { display: flex; }
         
         .nav-btn.active { color: var(--primary); }
         .nav-btn.active::after { content: ''; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 20px; height: 4px; background: var(--primary); border-radius: 0 0 10px 10px; }
-
-        /* FIXED HERO CARD CSS */
+        
         .hero-card { 
             min-height: 160px; 
             background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); 
@@ -39,7 +41,6 @@
             position: relative;
             overflow: hidden;
         }
-
         .mic-active { animation: ring-pulse 1.5s infinite; }
         @keyframes ring-pulse {
             0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); transform: scale(1); }
@@ -49,7 +50,6 @@
     </style>
 </head>
 <body class="max-w-md mx-auto shadow-2xl">
-
     <div id="authScreen" class="screen active justify-center p-8 bg-white">
         <div id="loginView" class="space-y-8 w-full">
             <div class="text-center">
@@ -66,7 +66,6 @@
                 <p class="text-center text-sm font-bold text-slate-400">New here? <button onclick="toggleAuth('reg')" class="text-indigo-600">Register</button></p>
             </div>
         </div>
-
         <div id="regView" class="hidden space-y-4 w-full">
             <h2 class="text-3xl font-black">Create Profile</h2>
             <input id="rName" type="text" placeholder="Full Name" class="w-full p-4 bg-slate-50 rounded-2xl border outline-none">
@@ -86,9 +85,8 @@
                     <p class="text-[9px] font-black text-indigo-500 mt-1 uppercase tracking-widest">XP: <span id="xpCount">0</span>/500</p>
                 </div>
             </div>
-            <button onclick="location.reload()" class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center"><span class="material-icons">power_settings_new</span></button>
+            <button onclick="logoutUser()" class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center"><span class="material-icons">power_settings_new</span></button>
         </header>
-
         <main class="flex-1 relative overflow-hidden bg-slate-50">
             <section id="homeTab" class="tab-content active space-y-8">
                 <div class="hero-card">
@@ -98,7 +96,6 @@
                         <span class="bg-white/20 px-3 py-1 rounded-full text-[9px] font-black">🔥 3 DAY STREAK</span>
                     </div>
                 </div>
-
                 <div class="space-y-4">
                     <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Global News Feed</h4>
                     <div id="newsFeed" class="space-y-3">
@@ -108,7 +105,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="space-y-4 pb-12">
                     <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Revision Library</h4>
                     <div id="mistakeList" class="space-y-3">
@@ -116,7 +112,7 @@
                     </div>
                 </div>
             </section>
-
+            
             <section id="teacherTab" class="tab-content">
                 <div class="bg-white p-4 rounded-3xl border flex gap-3 shadow-sm mb-8">
                     <select id="tFrom" class="flex-1 bg-slate-50 p-3 rounded-2xl text-xs font-black lang-list outline-none"></select>
@@ -132,7 +128,7 @@
                     </div>
                 </div>
             </section>
-
+            
             <section id="translatorTab" class="tab-content space-y-6">
                 <div class="bg-white p-8 rounded-[3rem] border shadow-sm space-y-4">
                     <h3 class="font-black text-xl">Quick Translator</h3>
@@ -147,7 +143,7 @@
                     <button onclick="speakText(document.getElementById('transOutputText').innerText, document.getElementById('transTarget').value)" class="absolute top-4 right-4 text-indigo-300"><span class="material-icons">volume_up</span></button>
                 </div>
             </section>
-
+            
             <section id="grammarTab" class="tab-content">
                 <div class="bg-white p-8 rounded-[3rem] border shadow-sm space-y-6">
                     <h3 class="font-black text-xl">Grammar Expert</h3>
@@ -158,7 +154,7 @@
                     <div id="gOut" class="space-y-4"></div>
                 </div>
             </section>
-
+            
             <section id="vocabTab" class="tab-content flex flex-col items-center justify-center">
                 <div class="w-full bg-white p-10 rounded-[4rem] border shadow-xl text-center space-y-6">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pronounce this</p>
@@ -173,7 +169,7 @@
                 </div>
             </section>
         </main>
-
+        
         <nav class="bg-white border-t py-2 flex justify-around items-center shrink-0 px-4 pb-8">
             <button onclick="switchTab('homeTab', this)" class="nav-btn active flex flex-col items-center gap-1 p-2"><span class="material-icons">grid_view</span><span class="text-[8px] font-black uppercase">Home</span></button>
             <button onclick="switchTab('teacherTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">psychology</span><span class="text-[8px] font-black uppercase">Teacher</span></button>
@@ -184,9 +180,84 @@
     </div>
 
     <script>
+        // --- Firebase Project Configuration ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBx8JUwTkljsLF8X2QIBjIkqNmhaDexl-Y", 
+            authDomain: "nova-ai-3a431.firebaseapp.com", 
+            projectId: "nova-ai-3a431", 
+            storageBucket: "nova-ai-3a431.appspot.com", 
+            messagingSenderId: "301912823265", 
+            appId: "1:301912823265:web:58058894c24eb627bf6ea0" 
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
         let xp = 0;
         let mistakes = [];
-        
+        let unsubscribeUserDoc = null; 
+        let isRegistering = false; // Flag to prevent race condition loop during account creation
+
+        // --- Real-time Session & Data Sync Handler ---
+       // --- Updated Real-time Session & User Profile Sync Listener ---
+auth.onAuthStateChanged(async (user) => {
+    if (isRegistering) return; 
+    
+    
+    if (user) {
+        if (user.emailVerified) {
+            // Firestore-user data-real-time-access
+            
+            unsubscribeUserDoc = db.collection('users').doc(user.uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    xp = data.xp || 0;
+                    mistakes = data.mistakes || [];
+                    
+                    // 1. database saved - username profile name display setup 
+                    document.getElementById('userName').innerText = data.username || "User";
+                    
+                    // 2. Name First Letter- Profile Icon-(Uppercase) setup 
+                    document.getElementById('userInit').innerText = data.username ? data.username[0].toUpperCase() : "U";
+                    
+                    // XP fields update
+                    document.getElementById('xpCount').innerText = xp;
+                    document.getElementById('xpLarge').innerText = xp;
+                    
+                    // Mistakes history
+                    if (mistakes.length === 0) {
+                        document.getElementById('mistakeList').innerHTML = `<div class="p-8 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-300 font-bold text-xs">NO MISTAKES YET</div>`;
+                    } else {
+                        document.getElementById('mistakeList').innerHTML = mistakes.slice(0, 3).map(m => `<div class="bg-white p-4 rounded-3xl shadow-sm"><p class="text-[9px] text-red-300 line-through">"${m.w}"</p><p class="text-xs font-black text-slate-700">"${m.r}"</p></div>`).join('');
+                    }
+                }
+            });
+
+            document.getElementById('authScreen').classList.remove('active');
+            document.getElementById('appScreen').classList.add('active');
+        } else {
+            alert("⚠️ Access locked! Please verify using the link sent to your mail id.");
+            await auth.signOut();
+            routeToAuth();
+        }
+    } else {
+        routeToAuth();
+    }
+});
+
+        function routeToAuth() {
+            if (unsubscribeUserDoc) { unsubscribeUserDoc(); unsubscribeUserDoc = null; }
+            document.getElementById('appScreen').classList.remove('active');
+            document.getElementById('authScreen').classList.add('active');
+        }
+
+        function logoutUser() {
+            auth.signOut().then(() => { location.reload(); });
+        }
+
         const languages = [
             {c:'en-US', n:'English'}, {c:'ta-IN', n:'Tamil'}, {c:'hi-IN', n:'Hindi'}, 
             {c:'te-IN', n:'Telugu'}, {c:'ml-IN', n:'Malayalam'}, {c:'kn-IN', n:'Kannada'},
@@ -221,43 +292,88 @@
             "Keep going no matter what",
             "Winners never quit and quitters never win"
         ];
-
+        
         window.onload = () => {
             document.querySelectorAll('.lang-list').forEach(s => s.innerHTML = languages.map(l => `<option value="${l.c}">${l.n}</option>`).join(''));
             document.getElementById('tTo').value = 'ta-IN';
             document.getElementById('transTarget').value = 'ta-IN';
         };
-
+        
         function toggleAuth(view) {
             document.getElementById('loginView').classList.toggle('hidden', view === 'reg');
             document.getElementById('regView').classList.toggle('hidden', view === 'login');
         }
-
-        function authAction(type) {
-            if(type === 'reg') {
-                const n = document.getElementById('rName').value, e = document.getElementById('rEmail').value, p = document.getElementById('rPass').value;
-                if(!n || !e || !p) return;
-                localStorage.setItem('nova_auth', JSON.stringify({n, e, p}));
-                toggleAuth('login');
-            } else {
-                const e = document.getElementById('lEmail').value, p = document.getElementById('lPass').value, saved = JSON.parse(localStorage.getItem('nova_auth'));
-                if(saved && saved.e === e && saved.p === p) {
-                    document.getElementById('userName').innerText = saved.n;
-                    document.getElementById('userInit').innerText = saved.n[0].toUpperCase();
-                    document.getElementById('authScreen').classList.remove('active');
-                    document.getElementById('appScreen').classList.add('active');
-                    confetti();
-                } else alert("Account Not Found!");
-            }
+        
+        // --- Fixed Auth Action with Sequence Flow ---
+        // --- Updated Registration & Login Handler ---
+// --- Updated Auth Action with Custom Blur Popup Support ---
+async function authAction(type) {
+    if(type === 'reg') {
+        const n = document.getElementById('rName').value, 
+              e = document.getElementById('rEmail').value, 
+              p = document.getElementById('rPass').value;
+              
+        if(!n || !e || !p) { showAlert("Please complete all profile creation fields!"); return; }
+        
+        try {
+            isRegistering = true;
+            const userCredential = await auth.createUserWithEmailAndPassword(e, p);
+            const user = userCredential.user;
+            
+            await db.collection('users').doc(user.uid).set({
+                username: n,
+                email: e,
+                password: p,
+                xp: 0,
+                mistakes: []
+            });
+            
+            await user.sendEmailVerification();
+            showAlert("✅ Registration successful! Verification link sent to your mail id. Confirm to login.");
+            
+            await auth.signOut();
+            isRegistering = false;
+            toggleAuth('login');
+            
+            document.getElementById('rName').value = "";
+            document.getElementById('rEmail').value = "";
+            document.getElementById('rPass').value = "";
+        } catch (error) {
+            isRegistering = false;
+            showAlert("Registration Failed: " + error.message);
         }
-
+    } else {
+        const e = document.getElementById('lEmail').value, 
+              p = document.getElementById('lPass').value;
+              
+        if(!e || !p) { showAlert("Please provide Email Address and Password details."); return; }
+        
+        try {
+            const userCredential = await auth.signInWithEmailAndPassword(e, p);
+            const user = userCredential.user;
+            
+            await user.reload();
+            const refreshedUser = auth.currentUser;
+            
+            if(!refreshedUser.emailVerified) {
+                showAlert("⚠️ Access Denied! Your email has not been verified yet. Check your inbox.");
+                await auth.signOut();
+            } else {
+                confetti();
+            }
+        } catch (error) {
+            // Inga thaan native alert-க்கு பதிலா custom blur warning message-ஐ trigger பண்றோம் bro
+            showAlert("Check your mail id and password.");
+        }
+    }
+}
         function switchTab(id, btn) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.replace('active', 'text-slate-300'));
             btn.classList.add('active'); btn.classList.remove('text-slate-300');
         }
-
+        
         async function readNews(txt, el) {
             el.classList.add('ring-2', 'ring-indigo-500');
             speakText(txt, 'en-US');
@@ -265,7 +381,7 @@
             const data = await res.json();
             setTimeout(() => { speakText(data[0][0][0], 'ta-IN'); updateXP(10); confetti(); el.classList.remove('ring-2', 'ring-indigo-500'); }, 2500);
         }
-
+        
         async function aiTranslateAction() {
             const txt = document.getElementById('transInput').value;
             const target = document.getElementById('transTarget').value;
@@ -275,7 +391,7 @@
             document.getElementById('transOutputText').innerText = d[0][0][0];
             document.getElementById('transResultBox').classList.remove('hidden');
         }
-
+        
         function aiTeacherAction() {
             const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             const from = document.getElementById('tFrom').value, to = document.getElementById('tTo').value;
@@ -293,7 +409,7 @@
             rec.onend = () => document.getElementById('teacherMic').classList.remove('mic-active');
             rec.start();
         }
-
+        
         async function aiGrammarAction() {
             const txt = document.getElementById('gInput').value;
             if(!txt) return;
@@ -308,7 +424,7 @@
             const gOut = document.getElementById('gOut');
             document.getElementById('gResult').classList.remove('hidden');
             gOut.innerHTML = "";
-
+            
             if(data.matches.length > 0) {
                 data.matches.forEach(match => {
                     const suggestion = match.replacements.length > 0 ? match.replacements[0].value : "No suggestion";
@@ -318,7 +434,6 @@
                     const len = match.context.length;
                     
                     const errorPart = context.substring(offset, offset + len);
-
                     gOut.innerHTML += `
                         <div class="border-b border-indigo-400/30 pb-4 mb-4">
                             <p class="text-[10px] text-rose-300 font-black uppercase tracking-widest mb-1">Issue Found</p>
@@ -338,7 +453,7 @@
                 confetti(); 
             }
         }
-
+        
         function aiVocabAction() {
             const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             const target = document.getElementById('vWord').innerText.toLowerCase();
@@ -358,10 +473,58 @@
             rec.onend = () => document.getElementById('vMic').classList.remove('mic-active');
             rec.start();
         }
-
-        function updateXP(v) { xp = Math.min(500, xp + v); document.getElementById('xpCount').innerText = xp; document.getElementById('xpLarge').innerText = xp; }
-        function logMistake(w, r) { mistakes.unshift({w, r}); document.getElementById('mistakeList').innerHTML = mistakes.slice(0, 3).map(m => `<div class="bg-white p-4 rounded-3xl shadow-sm"><p class="text-[9px] text-red-300 line-through">"${m.w}"</p><p class="text-xs font-black text-slate-700">"${m.r}"</p></div>`).join(''); }
+        
+        // --- Absolute Cloud Target Allocation ---
+        function updateXP(v) { 
+            if (auth.currentUser && auth.currentUser.emailVerified) {
+                xp = Math.min(500, xp + v); 
+                db.collection("users").doc(auth.currentUser.uid).set({
+                    xp: xp
+                }, { merge: true }).catch(err => console.error("Firestore Sync Error:", err));
+            }
+        }
+        
+        function logMistake(w, r) { 
+            if (auth.currentUser && auth.currentUser.emailVerified) {
+                mistakes.unshift({w, r}); 
+                db.collection("users").doc(auth.currentUser.uid).set({
+                    mistakes: mistakes
+                }, { merge: true }).catch(err => console.error("Firestore Sync Error:", err));
+            }
+        }
+        
         function speakText(t, l) { const u = new SpeechSynthesisUtterance(t); u.lang = l; window.speechSynthesis.speak(u); }
+        
+  // --- Custom Glassmorphic Alert Actions ---
+function showAlert(msg) {
+    const alertBox = document.getElementById('customAlert');
+    document.getElementById('alertMessage').innerText = msg;
+    alertBox.classList.remove('hidden');
+    // Scale anim-க்காக chinna timeout duration delay
+    setTimeout(() => { alertBox.querySelector('div').classList.remove('scale-95'); }, 10);
+}
+
+function closeAlert() {
+    const alertBox = document.getElementById('customAlert');
+    alertBox.querySelector('div').classList.add('scale-95');
+    alertBox.classList.add('hidden');
+}     
+        
     </script>
+    
+    <div id="customAlert" onclick="closeAlert()" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all duration-300 p-6">
+    <div class="bg-white/80 backdrop-blur-xl border border-white/40 p-8 rounded-[2.5rem] shadow-2xl max-w-xs w-full text-center space-y-4 transform scale-95 transition-all" onclick="event.stopPropagation()">
+        <div class="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+            <span class="material-icons text-3xl">gpp_maybe</span>
+        </div>
+        <div>
+            <h3 class="font-black text-lg text-slate-800">Authentication Alert</h3>
+            <p id="alertMessage" class="text-xs font-medium text-slate-500 mt-1 leading-relaxed">Check your mail id and password.</p>
+        </div>
+        <p class="text-[9px] font-black text-slate-400 tracking-wider uppercase pt-2 animate-pulse">Tap anywhere to close</p>
+    </div>
+</div>
+    
+    
 </body>
 </html>
