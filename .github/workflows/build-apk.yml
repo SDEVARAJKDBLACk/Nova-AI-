@@ -44,14 +44,16 @@ jobs:
           cp *.css www/ 2>/dev/null || true
           cp *.js www/ 2>/dev/null || true
 
-      # 6. Create Capacitor Config File
+      # 6. Create Capacitor Config with Hardware Audio Permissions
+      # Inga மைக் மற்றும் ஸ்பீக்கர் சிஸ்டம் லெவல்ல ஆட்டோ-அலவ் ஆக கான்பிகரேஷன் சேர்த்தாச்சு bro!
       - name: Generate Capacitor Configuration
         run: |
           echo '{
             "appId": "com.kdblackdev.novaai",
             "appName": "Nova AI",
             "webDir": "www",
-            "server": { "androidScheme": "https" }
+            "server": { "androidScheme": "https", "allowNavigation": ["*"] },
+            "android": { "allowMixedContent": true, "audioManagement": "default" }
           }' > capacitor.config.json
 
       # 7. Fresh Android Platform Injection & Sync
@@ -61,24 +63,30 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      # 8. Execute Gradle Release Compiling (Bypassing native lock)
+      # 8. CRITICAL STEP: Inject Audio & Mic Permissions to AndroidManifest.xml
+      # ஆண்ட்ராய்டு போன்ல மைக் பக்கா-வா அலவ் ஆக இதுதான் முக்கியம் bro!
+      - name: Inject Android Manifest Permissions
+        run: |
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          # Adding Record Audio, Modify Audio and Internet permissions dynamically
+          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" \/>' $MANIFEST_PATH
+          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" \/>' $MANIFEST_PATH
+
+      # 9. Execute Gradle Release Compiling
       - name: Build Android Release Production APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --no-build-cache
 
-      # 9. CRITICAL STEP: Auto-Sign the Unsigned APK with Android Debug Keystore
-      # ஆண்ட்ராய்டு ஓஎஸ் பிளாக் செய்யாமல் இருக்க கிளவுடிலேயே சைனிங் செய்கிறோம் bro!
+      # 10. Auto-Sign the Unsigned APK with Android Debug Keystore
       - name: Sign Android APK Deliverable
         run: |
           sudo apt-get install -y apksigner
-          # Generate a standard secure development keystore profile
           keytool -genkey -v -keystore release.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000 -storepass kdblackdevpass -keypass kdblackdevpass -dname "CN=KD, OU=Dev, O=Black, L=CBE, S=TN, C=IN"
-          # Sign the raw output file directly using apksigner tool
           apksigner sign --ks release.keystore --ks-pass pass:kdblackdevpass --out android/app/build/outputs/apk/release/app-release-signed.apk android/app/build/outputs/apk/release/app-release-unsigned.apk
 
-      # 10. Extract 100% Verified Signed APK File to Artifacts
+      # 11. Upload Verified Native Feature Signed APK
       - name: Upload Finished APK Deliverable
         uses: actions/upload-artifact@v4
         with:
