@@ -5,40 +5,40 @@ on:
     branches:
       - main
       - master
-  workflow_dispatch: # Manual ரன் பட்டனுக்காக
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout GitHub Repository Code
+      # 1. Checkout Repository Source Code
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # 2. Setup Node environment (Error cache line removed bro!)
+      # 2. Setup Node environment
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # 3. Clean Initialize Package Settings & Dependencies
-      # Lock file இல்லாததால் நாமே புதிய package.json-ஐ கிளவுடில் உருவாக்கி பில்ட் செய்கிறோம்
+      # 3. Clean Initialize Project Packages
       - name: Initialize App Packages
         run: |
           if [ ! -f "package.json" ]; then
             npm init -y
           fi
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
 
-      # 4. Setup Java Platform JDK 17
+      # 4. Setup Java Platform (Using Zulu OpenJDK 17)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle' # Automatically handles jar caches to prevent extraction errors
 
-      # 5. Web directory creation & file sync fallback
+      # 5. Create Web Asset Directory Structure
       - name: Web Assets Structure Directory Validation
         run: |
           mkdir -p www
@@ -46,22 +46,24 @@ jobs:
           cp *.css www/ 2>/dev/null || true
           cp *.js www/ 2>/dev/null || true
 
-      # 6. Fresh Android Manifest & Platform Initialization 
+      # 6. Fresh Android Manifest Platform Injection
       - name: Cap Android Platform Dynamic Injection
         run: |
+          rm -rf android
           npx cap init "Nova AI" "com.kdblackdev.novaai" --web-dir=www
-          npx cap add android || true
+          npx cap add android
           npx cap sync android
 
-      # 7. Execute Gradle Release Compiling
+      # 7. Execute Gradle Release Compiling with Cache Bypass
       - name: Build Android Release Production APK
         run: |
           cd android
-          ./gradlew assembleRelease
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
-      # 8. Extract Finished APK File to Actions Artifacts
+      # 8. Extract Finished Unsigned APK File to Artifacts
       - name: Upload Finished APK Deliverable
         uses: actions/upload-artifact@v4
         with:
-          name: LumaAI-Cloud-Release-APK
+          name: NovaAI-Cloud-Release-APK
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
