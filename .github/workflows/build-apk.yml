@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-      - master  # main OR master branch ethula push pannaalum trigger aagum
-  workflow_dispatch: # Manual build run button options-kaga
+      - master
+  workflow_dispatch: # Manual ரன் பட்டனுக்காக
 
 jobs:
   build:
@@ -16,17 +16,19 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # 2. Setup Node environment
+      # 2. Setup Node environment (Error cache line removed bro!)
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
 
-      # 3. Clean Install Dependencies
-      - name: Install Project Dependencies
+      # 3. Clean Initialize Package Settings & Dependencies
+      # Lock file இல்லாததால் நாமே புதிய package.json-ஐ கிளவுடில் உருவாக்கி பில்ட் செய்கிறோம்
+      - name: Initialize App Packages
         run: |
-          npm install
+          if [ ! -f "package.json" ]; then
+            npm init -y
+          fi
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
       # 4. Setup Java Platform JDK 17
@@ -36,19 +38,15 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # 5. Build Safety Control: Web directory creation (If not present)
-      # TrebEdit assets root profile default structure direct-ah sync aaga temporary 'www' block check
+      # 5. Web directory creation & file sync fallback
       - name: Web Assets Structure Directory Validation
         run: |
-          if [ ! -d "www" ]; then
-            mkdir www
-            cp *.html www/ 2>/dev/null || true
-            cp *.css www/ 2>/dev/null || true
-            cp *.js www/ 2>/dev/null || true
-          fi
+          mkdir -p www
+          cp *.html www/ 2>/dev/null || true
+          cp *.css www/ 2>/dev/null || true
+          cp *.js www/ 2>/dev/null || true
 
       # 6. Fresh Android Manifest & Platform Initialization 
-      # Ethendha local platform file missing-ah irundhalum Cloud-lye fresh-ah compile pannidum
       - name: Cap Android Platform Dynamic Injection
         run: |
           npx cap init "Nova AI" "com.kdblackdev.novaai" --web-dir=www
@@ -61,7 +59,7 @@ jobs:
           cd android
           ./gradlew assembleRelease
 
-      # 8. Extract Manifest & Push Output File to Actions Artifacts
+      # 8. Extract Finished APK File to Actions Artifacts
       - name: Upload Finished APK Deliverable
         uses: actions/upload-artifact@v4
         with:
