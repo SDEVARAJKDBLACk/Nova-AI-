@@ -16,52 +16,64 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # 2. Setup Node environment
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      # 3. Clean Initialize Project Packages
-      - name: Initialize App Packages
-        run: |
-          if [ ! -f "package.json" ]; then
-            npm init -y
-          fi
-          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
-
-      # 4. Setup Java Platform (Using Zulu OpenJDK 17)
+      # 2. Setup Java Platform (Using Zulu OpenJDK 17)
+      # Note: Setup Java-வை Node-க்கு முன்னாடி கொண்டு வந்து Gradle Environment-ஐ ஸ்டேபிள் ஆக்கியாச்சு bro
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle' # Automatically handles jar caches to prevent extraction errors
 
-      # 5. Create Web Asset Directory Structure
+      # 3. Setup Node environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # 4. Initialize Core Package & Capacitor Manifests Directly
+      # Root-ல் package.json இல்லாததால் நாமே பிரெஷ்ஷாக இன்ஜெக்ட் செய்கிறோம்
+      - name: Initialize App Packages & Manifests
+        run: |
+          echo '{"name": "nova-ai", "version": "1.0.0", "dependencies": {}}' > package.json
+          npm install @capacitor/core@5.7.0 @capacitor/cli@5.7.0 @capacitor/android@5.7.0
+
+      # 5. Create Web Asset Directory Structure & Fallback Mapping
+      # index.html மற்றும் பிற சொத்துக்களை 'www' ஃபோல்டருக்குள் நகர்த்துகிறோம்
       - name: Web Assets Structure Directory Validation
         run: |
           mkdir -p www
+          cp index.html www/ 2>/dev/null || true
           cp *.html www/ 2>/dev/null || true
           cp *.css www/ 2>/dev/null || true
           cp *.js www/ 2>/dev/null || true
 
-      # 6. Fresh Android Manifest Platform Injection
+      # 6. Create Hardcoded Capacitor Config File
+      # கிளவுடில் கன்ஃபிகரேஷன் மிஸ் ஆகாமல் இருக்க நாமே capacitor.config.json-ஐ ரைட் செய்கிறோம்
+      - name: Generate Capacitor Configuration
+        run: |
+          echo '{
+            "appId": "com.kdblackdev.novaai",
+            "appName": "Nova AI",
+            "webDir": "www",
+            "server": { "androidScheme": "https" }
+          }' > capacitor.config.json
+
+      # 7. Fresh Android Platform Injection & Sync
       - name: Cap Android Platform Dynamic Injection
         run: |
           rm -rf android
-          npx cap init "Nova AI" "com.kdblackdev.novaai" --web-dir=www
           npx cap add android
           npx cap sync android
 
-      # 7. Execute Gradle Release Compiling with Cache Bypass
+      # 8. Execute Gradle Release Compiling with Safe Lock
+      # Jar Extraction Conflict வராமல் இருக்க இங்கிருந்தே பர்மிஷன்களை அப்ளை செய்கிறோம்
       - name: Build Android Release Production APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --no-build-cache
 
-      # 8. Extract Finished Unsigned APK File to Artifacts
+      # 9. Extract Finished Unsigned APK File to Artifacts
       - name: Upload Finished APK Deliverable
         uses: actions/upload-artifact@v4
         with:
