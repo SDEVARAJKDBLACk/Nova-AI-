@@ -79,8 +79,9 @@
     <div id="appScreen" class="screen flex-col">
         <header class="px-6 py-4 bg-white border-b flex items-center justify-between z-50">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg" id="userInit">U</div>
-                <div>
+                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg cursor-pointer" id="userInit" onclick="toggleProfileCard()">U</div>
+                
+     <div>      </button> 
                     <h2 id="userName" class="font-black text-slate-800 text-sm italic leading-none">User</h2>
                     <p class="text-[9px] font-black text-indigo-500 mt-1 uppercase tracking-widest">XP: <span id="xpCount">0</span>/500</p>
                 </div>
@@ -168,14 +169,15 @@
                     <div id="vFeedback" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tap to Speak</div>
                 </div>
             </section>
-        </main>
+                    </main>
         
         <nav class="bg-white border-t py-2 flex justify-around items-center shrink-0 px-4 pb-8">
             <button onclick="switchTab('homeTab', this)" class="nav-btn active flex flex-col items-center gap-1 p-2"><span class="material-icons">grid_view</span><span class="text-[8px] font-black uppercase">Home</span></button>
             <button onclick="switchTab('teacherTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">psychology</span><span class="text-[8px] font-black uppercase">Teacher</span></button>
             <button onclick="switchTab('translatorTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">g_translate</span><span class="text-[8px] font-black uppercase">Trans</span></button>
             <button onclick="switchTab('grammarTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">spellcheck</span><span class="text-[8px] font-black uppercase">Grammar</span></button>
-            <button onclick="switchTab('vocabTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">graphic_eq</span><span class="text-[8px] font-black uppercase">Vocab</span></button>
+            <button onclick="switchTab('vocabTab', this)" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-300"><span class="material-icons">graphic_eq</span><span class="text-[8px] font-black uppercase">Vocab</spn>
+</button>
         </nav>
     </div>
 
@@ -233,8 +235,18 @@ auth.onAuthStateChanged(async (user) => {
                         document.getElementById('mistakeList').innerHTML = `<div class="p-8 text-center bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-300 font-bold text-xs">NO MISTAKES YET</div>`;
                     } else {
                         document.getElementById('mistakeList').innerHTML = mistakes.slice(0, 3).map(m => `<div class="bg-white p-4 rounded-3xl shadow-sm"><p class="text-[9px] text-red-300 line-through">"${m.w}"</p><p class="text-xs font-black text-slate-700">"${m.r}"</p></div>`).join('');
-                    }
+                    }          
                 }
+           
+const data = doc.data();
+document.getElementById('userName').innerText = data.username || "User";
+document.getElementById('userInit').innerText = data.username ? data.username[0].toUpperCase() : "U";
+
+// --- New Card UI Live Sync Lines ---
+document.getElementById('cardUserName').innerText = data.username || "User";
+document.getElementById('cardUserInit').innerText = data.username ? data.username[0].toUpperCase() : "U";
+document.getElementById('cardUserEmail').innerText = data.email || user.email;
+document.getElementById('cardUserPassword').innerText = data.password || "********";
             });
 
             document.getElementById('authScreen').classList.remove('active');
@@ -510,22 +522,148 @@ function closeAlert() {
     alertBox.querySelector('div').classList.add('scale-95');
     alertBox.classList.add('hidden');
 }     
+     
+     
+    // --- Profile Card Overlay View Handlers ---
+function toggleProfileCard() {
+    const overlay = document.getElementById('profileOverlay');
+    if(overlay.classList.contains('hidden')) {
+        overlay.classList.remove('hidden');
+        setTimeout(() => { overlay.querySelector('div').classList.remove('scale-95'); }, 10);
+    } else {
+        overlay.querySelector('div').classList.add('scale-95');
+        overlay.classList.add('hidden');
+    }
+}
+
+
+
+// --- Exclusive Alert for Feedback View Only ---
+function showFeedbackAlert(title, msg, isSuccess = false) {
+    const alertBox = document.getElementById('customAlert');
+    const iconContainer = document.getElementById('alertIconContainer');
+    const icon = document.getElementById('alertIcon');
+    
+    document.getElementById('alertTitle').innerText = title;
+    document.getElementById('alertMessage').innerText = msg;
+    
+    if(isSuccess) {
+        iconContainer.className = "w-16 h-16 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm";
+        icon.innerText = "verified";
+    } else {
+        iconContainer.className = "w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm";
+        icon.innerText = "gpp_maybe";
+    }
+    
+    alertBox.classList.remove('hidden');
+    setTimeout(() => { alertBox.querySelector('div').classList.remove('scale-95'); }, 10);
+}
+
+// --- Dynamic Feedback Card Submission Logic ---
+async function submitCardFeedbackAction() {
+    const category = document.getElementById('cardFbCategory').value;
+    const message = document.getElementById('cardFbMessage').value.trim();
+    
+    if(!message) { 
+        // Inga namma puthu exclusive function-ah koopidrom
+        showFeedbackAlert("Validation Notice", "Please enter your feedback or suggestion details.", false); 
+        return; 
+    }
+    
+    try {
+        const currentUserDoc = await db.collection('users').doc(auth.currentUser.uid).get();
+        let uName = "Anonymous User";
+        let uEmail = auth.currentUser.email;
         
+        if (currentUserDoc.exists) {
+            uName = currentUserDoc.data().username || uName;
+        }
+        
+        await db.collection('feedbacks').add({
+            uid: auth.currentUser.uid,
+            username: uName,
+            email: uEmail,
+            category: category,
+            message: message,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        toggleProfileCard(); 
+        
+        // Success-க்கும் namma specialized feedback function thaan handle pannுது
+        showFeedbackAlert("Success Report", "🎉 Thank you! For Your Feedback.", true);
+        
+        document.getElementById('cardFbMessage').value = "";
+        
+    } catch (error) {
+        console.error("Card Feedback Submission Error:", error);
+        showFeedbackAlert("Submission Interrupted", error.message, false);
+    }
+}
+
     </script>
     
     <div id="customAlert" onclick="closeAlert()" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all duration-300 p-6">
     <div class="bg-white/80 backdrop-blur-xl border border-white/40 p-8 rounded-[2.5rem] shadow-2xl max-w-xs w-full text-center space-y-4 transform scale-95 transition-all" onclick="event.stopPropagation()">
-        <div class="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
-            <span class="material-icons text-3xl">gpp_maybe</span>
+        
+        <div id="alertIconContainer" class="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+            <span id="alertIcon" class="material-icons text-3xl">gpp_maybe</span>
         </div>
+        
         <div>
-            <h3 class="font-black text-lg text-slate-800">Authentication Alert</h3>
+            <h3 id="alertTitle" class="font-black text-lg text-slate-800">Authentication Alert</h3>
             <p id="alertMessage" class="text-xs font-medium text-slate-500 mt-1 leading-relaxed">Check your mail id and password.</p>
         </div>
+        
         <p class="text-[9px] font-black text-slate-400 tracking-wider uppercase pt-2 animate-pulse">Tap anywhere to close</p>
     </div>
 </div>
     
-    
+ <div id="profileOverlay" onclick="toggleProfileCard()" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all duration-300 p-6">
+    <div class="bg-white/90 backdrop-blur-xl border border-white/40 p-8 rounded-[3rem] shadow-2xl max-w-sm w-full space-y-6 transform scale-95 transition-all" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center gap-4 border-b border-slate-100 pb-4">
+            <div class="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-md">
+                <span id="cardUserInit">U</span>
+            </div>
+            <div>
+                <h3 id="cardUserName" class="font-black text-lg text-slate-800">User Name</h3>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Luma Active Profile</p>
+            </div>
+        </div>
+
+        <div class="space-y-3 bg-slate-50/60 p-4 rounded-2xl border border-slate-100">
+            <div>
+                <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Registered Mail ID</span>
+                <span id="cardUserEmail" class="text-xs font-bold text-slate-700 break-all">mailid@gmail.com</span>
+            </div>
+            <div class="pt-1 border-t border-slate-100">
+                <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Security Password</span>
+                <span id="cardUserPassword" class="text-xs font-bold text-slate-700">********</span>
+            </div>
+        </div>
+
+        <div class="space-y-3 border-t border-slate-100 pt-4">
+            <div class="flex items-center justify-between">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Share Feedback / Idea</label>
+                <select id="cardFbCategory" class="bg-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-black outline-none border-none text-slate-600">
+                    <option value="General Feedback">⭐ Feedback</option>
+                    <option value="Feature Suggestion">💡 Suggestion</option>
+                    <option value="Bug Report">🐞 Bug Report</option>
+                </select>
+            </div>
+            <textarea id="cardFbMessage" class="w-full h-24 outline-none text-xs font-bold bg-slate-50 p-3 rounded-xl resize-none border border-slate-100 focus:bg-white focus:border-indigo-200 transition-all" placeholder="Type your suggestion or feedback here..."></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-2">
+            <button onclick="toggleProfileCard()" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-black text-xs active:scale-95 transition-all text-center">
+                CLOSE
+            </button>
+            <button onclick="submitCardFeedbackAction()" class="py-3.5 bg-indigo-600 text-white rounded-xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10">
+                <span class="material-icons text-xs">send</span> SEND
+            </button>
+        </div>
+    </div>
+</div>      
 </body>
 </html>
