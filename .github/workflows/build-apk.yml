@@ -29,11 +29,12 @@ jobs:
         with:
           node-version: 18
 
-      # 4. Initialize Core Package & Capacitor Manifests Directly
+      # 4. Initialize Core Package & Capacitor Manifests
       - name: Initialize App Packages & Manifests
         run: |
           echo '{"name": "nova-ai", "version": "1.0.0", "dependencies": {}}' > package.json
           npm install @capacitor/core@5.7.0 @capacitor/cli@5.7.0 @capacitor/android@5.7.0
+          npm install -g @capacitor/assets imagemagick
 
       # 5. Create Web Asset Directory Structure
       - name: Web Assets Structure Directory Validation
@@ -44,49 +45,64 @@ jobs:
           cp *.css www/ 2>/dev/null || true
           cp *.js www/ 2>/dev/null || true
 
-      # 6. Create Capacitor Config with Hardware Audio Permissions
-      # Inga மைக் மற்றும் ஸ்பீக்கர் சிஸ்டம் லெவல்ல ஆட்டோ-அலவ் ஆக கான்பிகரேஷன் சேர்த்தாச்சு bro!
+      # 6. Create Capacitor Config File
       - name: Generate Capacitor Configuration
         run: |
           echo '{
             "appId": "com.kdblackdev.novaai",
-            "appName": "Nova AI",
+            "appName": "Luma AI",
             "webDir": "www",
             "server": { "androidScheme": "https", "allowNavigation": ["*"] },
             "android": { "allowMixedContent": true, "audioManagement": "default" }
           }' > capacitor.config.json
 
-      # 7. Fresh Android Platform Injection & Sync
+      # 7. Fresh Android Platform Injection
       - name: Cap Android Platform Dynamic Injection
         run: |
           rm -rf android
           npx cap add android
-          npx cap sync android
 
-      # 8. CRITICAL STEP: Inject Audio & Mic Permissions to AndroidManifest.xml
-      # ஆண்ட்ராய்டு போன்ல மைக் பக்கா-வா அலவ் ஆக இதுதான் முக்கியம் bro!
+      # 8. CRITICAL STEP: High-Quality Anti-Aliased Icon Generation
+      # Neenga kudutha image pixel udaiyama Ultra High-Res-ah scale aagum bro!
+      - name: Generate High Quality Native App Icons
+        run: |
+          mkdir -p assets
+          
+          # Lanczos Filtering & High-Quality Resampling for sharp edges
+          if [ -f "app-logo.jpg" ]; then
+            convert -strip -interlace Plane -gaussian-blur 0.05 -filter Lanczos -quality 100 app-logo.jpg assets/icon-only.png
+          elif [ -f "app-logo.png" ]; then
+            convert -strip -filter Lanczos -quality 100 app-logo.png assets/icon-only.png
+          fi
+          
+          cp assets/icon-only.png assets/icon.png
+          cp assets/icon-only.png assets/splash.png
+          
+          # Capacitor generation with absolute source resolution lock
+          npx capacitor-assets generate --android
+
+      # 9. Inject Audio & Mic Permissions to AndroidManifest.xml
       - name: Inject Android Manifest Permissions
         run: |
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          # Adding Record Audio, Modify Audio and Internet permissions dynamically
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" \/>' $MANIFEST_PATH
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" \/>' $MANIFEST_PATH
 
-      # 9. Execute Gradle Release Compiling
+      # 10. Execute Gradle Release Compiling
       - name: Build Android Release Production APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --no-build-cache
 
-      # 10. Auto-Sign the Unsigned APK with Android Debug Keystore
+      # 11. Auto-Sign the Unsigned APK with Android Debug Keystore
       - name: Sign Android APK Deliverable
         run: |
           sudo apt-get install -y apksigner
           keytool -genkey -v -keystore release.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000 -storepass kdblackdevpass -keypass kdblackdevpass -dname "CN=KD, OU=Dev, O=Black, L=CBE, S=TN, C=IN"
           apksigner sign --ks release.keystore --ks-pass pass:kdblackdevpass --out android/app/build/outputs/apk/release/app-release-signed.apk android/app/build/outputs/apk/release/app-release-unsigned.apk
 
-      # 11. Upload Verified Native Feature Signed APK
+      # 12. Upload Verified Native Feature Signed APK
       - name: Upload Finished APK Deliverable
         uses: actions/upload-artifact@v4
         with:
