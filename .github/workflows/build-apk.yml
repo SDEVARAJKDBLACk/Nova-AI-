@@ -34,7 +34,7 @@ jobs:
         run: |
           echo '{"name": "nova-ai", "version": "1.0.0", "dependencies": {}}' > package.json
           npm install @capacitor/core@5.7.0 @capacitor/cli@5.7.0 @capacitor/android@5.7.0
-          npm install -g @capacitor/assets imagemagick
+          npm install -g @capacitor/assets
 
       # 5. Create Web Asset Directory Structure
       - name: Web Assets Structure Directory Validation
@@ -62,10 +62,12 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # 8. CRITICAL STEP: High-Quality Anti-Aliased Icon Generation
-      # Neenga kudutha image pixel udaiyama Ultra High-Res-ah scale aagum bro!
+      # 8. CRITICAL STEP: Install ImageMagick & Generate High-Quality Icons
+      # Inga சிஸ்டம் லெவல்ல ImageMagick டூலை இன்ஸ்டால் பண்ணி கன்வெர்ட் பண்றோம் bro!
       - name: Generate High Quality Native App Icons
         run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
           mkdir -p assets
           
           # Lanczos Filtering & High-Quality Resampling for sharp edges
